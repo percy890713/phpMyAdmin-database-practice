@@ -249,4 +249,40 @@ id 跳號代表曾有資料被刪除，屬於正常現象。id 只需「唯一�
 
 ---
 
+## Git 操作指令
+
+### 第一次 clone 下來（換電腦或給別人用）
+
+```bash
+git clone https://github.com/percy890713/phpMyAdmin-database-practice.git
+cd phpMyAdmin-database-practice
+
+# 複製設定範本，填入自己的帳號密碼
+cp config.example.py config.py
+```
+
+然後編輯 `config.py`，把 `your_username` / `your_password` 換成實際的資料庫帳密。
+
+---
+
+### 日常更新推上 GitHub
+
+```bash
+# 查看哪些檔案有變動
+git status
+
+# 加入要推的檔案（指定檔名，避免誤推敏感資料）
+git add db.py orders.py main.py api.py logs.py static/index.html README.md
+
+# 寫 commit 訊息
+git commit -m "說明這次改了什麼"
+
+# 推上 GitHub
+git push
+```
+
+> `config.py` 已加入 `.gitignore`，每次 `git add` 都不會把它包進去，不用擔心密碼外洩。
+
+---
+
 *建立日期：2026-05-05*
