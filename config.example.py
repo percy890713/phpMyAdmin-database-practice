@@ -1,0 +1,7 @@
+DB_CONFIG = {
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "your_username",
+    "password": "your_password",
+    "database": "my_practice_20260505",
+}

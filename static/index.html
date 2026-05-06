@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>訂單管理系統</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Microsoft JhengHei', sans-serif; background: #f0f2f5; color: #333; }
+
+    header { background: #1a73e8; color: white; padding: 16px 28px; font-size: 1.3rem; font-weight: 600; }
+
+    .tabs {
+      display: flex; background: white;
+      border-bottom: 2px solid #e0e0e0; padding: 0 28px;
+      overflow-x: auto;
+    }
+    .tab {
+      padding: 13px 18px; cursor: pointer; white-space: nowrap;
+      border-bottom: 3px solid transparent; font-size: 0.92rem; color: #555;
+    }
+    .tab:hover { background: #f5f5f5; }
+    .tab.active { border-bottom-color: #1a73e8; color: #1a73e8; font-weight: 600; }
+
+    .container { max-width: 860px; margin: 28px auto; padding: 0 20px; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .card {
+      background: white; border-radius: 10px; padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .form-group { margin-bottom: 14px; }
+    label { display: block; margin-bottom: 5px; font-size: 0.88rem; color: #555; font-weight: 500; }
+    input, select {
+      width: 100%; padding: 9px 12px;
+      border: 1px solid #ddd; border-radius: 6px; font-size: 0.93rem;
+      font-family: inherit;
+    }
+    input:focus, select:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 2px #e8f0fe; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    .btn { background: #1a73e8; color: white; border: none; padding: 9px 22px; border-radius: 6px; cursor: pointer; font-size: 0.92rem; font-family: inherit; }
+    .btn:hover { background: #1557b0; }
+    .btn.secondary { background: #666; }
+    .btn.secondary:hover { background: #444; }
+    .btn.danger { background: #d32f2f; }
+    .btn.danger:hover { background: #b71c1c; }
+
+    .result { margin-top: 20px; }
+    .result-title { font-size: 0.88rem; color: #777; margin-bottom: 10px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: #f7f8fa; padding: 9px 11px; text-align: left; font-weight: 600; border-bottom: 2px solid #e8e8e8; }
+    td { padding: 9px 11px; border-bottom: 1px solid #f2f2f2; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbff; }
+
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; }
+    .badge-待處理 { background: #fff3e0; color: #e65100; }
+    .badge-已出貨 { background: #e3f2fd; color: #1565c0; }
+    .badge-已完成 { background: #e8f5e9; color: #2e7d32; }
+
+    .alert { padding: 11px 15px; border-radius: 6px; font-size: 0.9rem; margin-top: 16px; }
+    .alert-ok  { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+    .alert-err { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+
+    .empty { text-align: center; color: #aaa; padding: 36px 0; font-size: 0.9rem; }
+
+    #edit-form { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+  </style>
+</head>
+<body>
+
+<header>訂單管理系統</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(0)">1. 查詢所有訂單</div>
+  <div class="tab" onclick="switchTab(1)">2. 依條件查詢</div>
+  <div class="tab" onclick="switchTab(2)">3. 新增訂單</div>
+  <div class="tab" onclick="switchTab(3)">4. 更新狀態</div>
+  <div class="tab" onclick="switchTab(4)">5. 刪除訂單</div>
+  <div class="tab" onclick="switchTab(5)">6. 更改訂單</div>
+  <div class="tab" onclick="switchTab(6)">7. 修改紀錄</div>
+</div>
+
+<div class="container">
+
+  <!-- ① 查詢所有訂單 -->
+  <div class="panel active" id="panel-0">
+    <div class="card">
+      <button class="btn" onclick="loadAll()">載入所有訂單</button>
+      <div class="result" id="r0"></div>
+    </div>
+  </div>
+
+  <!-- ② 依條件查詢 -->
+  <div class="panel" id="panel-1">
+    <div class="card">
+      <div class="form-group">
+        <label>查詢方式</label>
+        <select id="s-by" onchange="onSearchByChange()">
+          <option value="customer">客戶姓名</option>
+          <option value="status">訂單狀態</option>
+          <option value="date">日期</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label id="s-label">客戶姓名</label>
+        <input  type="text" id="s-text"   placeholder="請輸入關鍵字">
+        <select id="s-status" style="display:none">
+          <option value="待處理">待處理</option>
+          <option value="已出貨">已出貨</option>
+          <option value="已完成">已完成</option>
+        </select>
+      </div>
+      <button class="btn" onclick="searchOrders()">查詢</button>
+      <div class="result" id="r1"></div>
+    </div>
+  </div>
+
+  <!-- ③ 新增訂單 -->
+  <div class="panel" id="panel-2">
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group">
+          <label>客戶姓名</label>
+          <input type="text" id="n-cust" placeholder="王小明">
+        </div>
+        <div class="form-group">
+          <label>商品</label>
+          <input type="text" id="n-prod" placeholder="筆記型電腦">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>數量</label>
+          <input type="number" id="n-qty" min="1" placeholder="1">
+        </div>
+        <div class="form-group">
+          <label>單價（元）</label>
+          <input type="number" id="n-price" min="0" placeholder="25000">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>日期</label>
+          <input type="date" id="n-date">
+        </div>
+        <div class="form-group">
+          <label>狀態</label>
+          <select id="n-status">
+            <option value="待處理">待處理</option>
+            <option value="已出貨">已出貨</option>
+            <option value="已完成">已完成</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn" onclick="insertOrder()">新增訂單</button>
+      <div class="result" id="r2"></div>
+    </div>
+  </div>
+
+  <!-- ④ 更新狀態 -->
+  <div class="panel" id="panel-3">
+    <div class="card">
+      <div class="form-group">
+        <label>訂單 id</label>
+        <input type="number" id="us-id" min="1" placeholder="請輸入訂單 id">
+      </div>
+      <div class="form-group">
+        <label>新狀態</label>
+        <select id="us-status">
+          <option value="待處理">待處理</option>
+          <option value="已出貨">已出貨</option>
+          <option value="已完成">已完成</option>
+        </select>
+      </div>
+      <button class="btn" onclick="updateStatus()">更新狀態</button>
+      <div class="result" id="r3"></div>
+    </div>
+  </div>
+
+  <!-- ⑤ 刪除訂單 -->
+  <div class="panel" id="panel-4">
+    <div class="card">
+      <div class="form-group">
+        <label>訂單 id</label>
+        <input type="number" id="del-id" min="1" placeholder="請輸入訂單 id">
+      </div>
+      <button class="btn danger" onclick="deleteOrder()">刪除訂單</button>
+      <div class="result" id="r4"></div>
+    </div>
+  </div>
+
+  <!-- ⑥ 更改訂單 -->
+  <div class="panel" id="panel-5">
+    <div class="card">
+      <div class="form-group">
+        <label>訂單 id</label>
+        <input type="number" id="e-id" min="1" placeholder="請輸入訂單 id">
+      </div>
+      <button class="btn secondary" onclick="loadOrder()">載入訂單資料</button>
+
+      <div id="edit-form" style="display:none">
+        <div class="form-row">
+          <div class="form-group">
+            <label>客戶姓名</label>
+            <input type="text" id="e-cust">
+          </div>
+          <div class="form-group">
+            <label>商品</label>
+            <input type="text" id="e-prod">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>數量</label>
+            <input type="number" id="e-qty" min="1">
+          </div>
+          <div class="form-group">
+            <label>單價（元）</label>
+            <input type="number" id="e-price" min="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>日期</label>
+          <input type="date" id="e-date">
+        </div>
+        <button class="btn" onclick="updateOrder()">儲存更改</button>
+      </div>
+
+      <div class="result" id="r5"></div>
+    </div>
+  </div>
+
+  <!-- ⑦ 修改紀錄 -->
+  <div class="panel" id="panel-6">
+    <div class="card">
+      <button class="btn" onclick="loadLogs()">載入紀錄</button>
+      <div class="result" id="r6"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── 工具函式 ───────────────────────────────────────────────
+
+  function switchTab(i) {
+    document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', i === j));
+    document.querySelectorAll('.panel').forEach((p, j) => p.classList.toggle('active', i === j));
+  }
+
+  function alert_ok(text)  { return `<div class="alert alert-ok">${text}</div>`; }
+  function alert_err(text) { return `<div class="alert alert-err">${text}</div>`; }
+
+  function renderTable(rows) {
+    if (!rows.length) return '<div class="empty">（無符合資料）</div>';
+    return `
+      <table>
+        <thead><tr>
+          <th>id</th><th>客戶姓名</th><th>商品</th>
+          <th>數量</th><th>單價</th><th>日期</th><th>狀態</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(o => `<tr>
+            <td>${o.id}</td>
+            <td>${o.customer_name}</td>
+            <td>${o.product}</td>
+            <td>${o.quantity}</td>
+            <td>${Number(o.price).toLocaleString()} 元</td>
+            <td>${o.order_date}</td>
+            <td><span class="badge badge-${o.status}">${o.status}</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  async function apiFetch(url, opts = {}) {
+    const res = await fetch(url, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '發生錯誤');
+    return data;
+  }
+
+  // ── ① 查詢所有 ────────────────────────────────────────────
+
+  async function loadAll() {
+    try {
+      const rows = await apiFetch('/orders');
+      document.getElementById('r0').innerHTML =
+        `<p class="result-title">共 ${rows.length} 筆訂單</p>` + renderTable(rows);
+    } catch (e) { document.getElementById('r0').innerHTML = alert_err(e.message); }
+  }
+
+  // ── ② 依條件查詢 ──────────────────────────────────────────
+
+  function onSearchByChange() {
+    const by = document.getElementById('s-by').value;
+    const labels = { customer: '客戶姓名', status: '訂單狀態', date: '日期' };
+    document.getElementById('s-label').textContent = labels[by];
+    const isStatus = by === 'status';
+    document.getElementById('s-text').style.display   = isStatus ? 'none' : '';
+    document.getElementById('s-status').style.display = isStatus ? '' : 'none';
+    document.getElementById('s-text').type = by === 'date' ? 'date' : 'text';
+  }
+
+  async function searchOrders() {
+    const by = document.getElementById('s-by').value;
+    const value = by === 'status'
+      ? document.getElementById('s-status').value
+      : document.getElementById('s-text').value.trim();
+    if (!value) { document.getElementById('r1').innerHTML = alert_err('請輸入查詢值'); return; }
+    try {
+      const rows = await apiFetch(`/orders/search?by=${encodeURIComponent(by)}&value=${encodeURIComponent(value)}`);
+      document.getElementById('r1').innerHTML =
+        `<p class="result-title">共 ${rows.length} 筆結果</p>` + renderTable(rows);
+    } catch (e) { document.getElementById('r1').innerHTML = alert_err(e.message); }
+  }
+
+  // ── ③ 新增訂單 ────────────────────────────────────────────
+
+  async function insertOrder() {
+    const cust  = document.getElementById('n-cust').value.trim();
+    const prod  = document.getElementById('n-prod').value.trim();
+    const qty   = document.getElementById('n-qty').value;
+    const price = document.getElementById('n-price').value;
+    const date  = document.getElementById('n-date').value;
+    const stat  = document.getElementById('n-status').value;
+    if (!cust || !prod || !qty || !price || !date) {
+      document.getElementById('r2').innerHTML = alert_err('請填寫所有欄位'); return;
+    }
+    try {
+      const data = await apiFetch('/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_name: cust, product: prod, quantity: +qty, price: +price, order_date: date, status: stat }),
+      });
+      document.getElementById('r2').innerHTML = alert_ok(`新增成功，訂單 id = ${data.id}`);
+    } catch (e) { document.getElementById('r2').innerHTML = alert_err(e.message); }
+  }
+
+  // ── ④ 更新狀態 ────────────────────────────────────────────
+
+  async function updateStatus() {
+    const id   = document.getElementById('us-id').value;
+    const stat = document.getElementById('us-status').value;
+    if (!id) { document.getElementById('r3').innerHTML = alert_err('請輸入訂單 id'); return; }
+    try {
+      const row = await apiFetch(`/orders/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: stat }),
+      });
+      document.getElementById('r3').innerHTML = alert_ok('更新成功') + renderTable([row]);
+    } catch (e) { document.getElementById('r3').innerHTML = alert_err(e.message); }
+  }
+
+  // ── ⑤ 刪除訂單 ────────────────────────────────────────────
+
+  async function deleteOrder() {
+    const id = document.getElementById('del-id').value;
+    if (!id) { document.getElementById('r4').innerHTML = alert_err('請輸入訂單 id'); return; }
+    if (!confirm(`確定要刪除訂單 id=${id}？`)) return;
+    try {
+      await apiFetch(`/orders/${id}`, { method: 'DELETE' });
+      document.getElementById('r4').innerHTML = alert_ok(`訂單 id=${id} 已刪除`);
+    } catch (e) { document.getElementById('r4').innerHTML = alert_err(e.message); }
+  }
+
+  // ── ⑥ 更改訂單 ────────────────────────────────────────────
+
+  async function loadOrder() {
+    const id = document.getElementById('e-id').value;
+    if (!id) { document.getElementById('r5').innerHTML = alert_err('請輸入訂單 id'); return; }
+    try {
+      const o = await apiFetch(`/orders/${id}`);
+      document.getElementById('e-cust').value  = o.customer_name;
+      document.getElementById('e-prod').value  = o.product;
+      document.getElementById('e-qty').value   = o.quantity;
+      document.getElementById('e-price').value = o.price;
+      document.getElementById('e-date').value  = o.order_date;
+      document.getElementById('edit-form').style.display = 'block';
+      document.getElementById('r5').innerHTML = '';
+    } catch (e) {
+      document.getElementById('edit-form').style.display = 'none';
+      document.getElementById('r5').innerHTML = alert_err(e.message);
+    }
+  }
+
+  // ── ⑦ 修改紀錄 ────────────────────────────────────────────
+
+  async function loadLogs() {
+    try {
+      const rows = await apiFetch('/logs');
+      if (!rows.length) {
+        document.getElementById('r6').innerHTML = '<div class="empty">（尚無紀錄）</div>';
+        return;
+      }
+      const actionColor = { '新增': '#2e7d32', '更新狀態': '#1565c0', '更改訂單': '#6a1b9a', '刪除': '#c62828' };
+      const html = `
+        <p class="result-title">共 ${rows.length} 筆紀錄</p>
+        <table>
+          <thead><tr>
+            <th>時間</th><th>操作</th><th>訂單 id</th><th>詳細說明</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(l => `<tr>
+              <td style="white-space:nowrap">${l.created_at}</td>
+              <td><span class="badge" style="background:#f3f3f3;color:${actionColor[l.action] || '#333'}">${l.action}</span></td>
+              <td>${l.order_id}</td>
+              <td>${l.detail}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+      document.getElementById('r6').innerHTML = html;
+    } catch (e) { document.getElementById('r6').innerHTML = alert_err(e.message); }
+  }
+
+  async function updateOrder() {
+    const id = document.getElementById('e-id').value;
+    const qtyRaw   = document.getElementById('e-qty').value;
+    const priceRaw = document.getElementById('e-price').value;
+    const body = {
+      customer_name: document.getElementById('e-cust').value.trim()  || null,
+      product:       document.getElementById('e-prod').value.trim()  || null,
+      quantity:      qtyRaw   !== '' ? +qtyRaw   : null,
+      price:         priceRaw !== '' ? +priceRaw : null,
+      order_date:    document.getElementById('e-date').value         || null,
+    };
+    try {
+      const row = await apiFetch(`/orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      document.getElementById('r5').innerHTML = alert_ok('更改成功') + renderTable([row]);
+    } catch (e) { document.getElementById('r5').innerHTML = alert_err(e.message); }
+  }
+</script>
+</body>
+</html>
