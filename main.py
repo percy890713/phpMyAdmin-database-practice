@@ -40,6 +40,39 @@ def input_int(prompt):
     return None
 
 
+def resolve_order(prompt):
+    """輸入 ID（數字）或客戶姓名，回傳對應的訂單 dict，找不到回傳 None。"""
+    raw = input(prompt).strip()
+    if not raw:
+        print("  ✗ 不能為空")
+        return None
+
+    if raw.isdigit():
+        order = get_order_by_id(int(raw))
+        if not order:
+            print(f"  ✗ 找不到 id={raw} 的訂單")
+        return order
+
+    orders = get_orders_by_customer(raw)
+    if not orders:
+        print(f"  ✗ 找不到客戶「{raw}」的訂單")
+        return None
+    if len(orders) == 1:
+        return orders[0]
+
+    print(f"  找到 {len(orders)} 筆訂單，請選擇要操作的：")
+    print_orders(orders)
+    order_id = input_int("  請輸入訂單 id：")
+    if order_id is None:
+        print("  ✗ id 必須是整數")
+        return None
+    matched = next((o for o in orders if o["id"] == order_id), None)
+    if not matched:
+        print(f"  ✗ id={order_id} 不在上方列表中")
+        return None
+    return matched
+
+
 # ── 選項處理函式 ────────────────────────────────────────────
 
 def handle_query_all():
@@ -115,15 +148,10 @@ def handle_insert():
 
 
 def handle_update_status():
-    order_id = input_int("\n請輸入要更新的訂單 id：")
-    if order_id is None:
-        print("  ✗ id 必須是整數")
-        return
-
-    order = get_order_by_id(order_id)
+    order = resolve_order("\n請輸入訂單 id 或客戶姓名：")
     if not order:
-        print(f"  ✗ 找不到 id={order_id} 的訂單")
         return
+    order_id = order["id"]
     print("  目前訂單：", end="")
     print_orders([order])
 
@@ -140,15 +168,10 @@ def handle_update_status():
 
 
 def handle_delete():
-    order_id = input_int("\n請輸入要刪除的訂單 id：")
-    if order_id is None:
-        print("  ✗ id 必須是整數")
-        return
-
-    order = get_order_by_id(order_id)
+    order = resolve_order("\n請輸入訂單 id 或客戶姓名：")
     if not order:
-        print(f"  ✗ 找不到 id={order_id} 的訂單")
         return
+    order_id = order["id"]
     print("  即將刪除：", end="")
     print_orders([order])
 
@@ -164,15 +187,10 @@ def handle_delete():
 
 
 def handle_update_order():
-    order_id = input_int("\n請輸入要更改的訂單 id：")
-    if order_id is None:
-        print("  ✗ id 必須是整數")
-        return
-
-    order = get_order_by_id(order_id)
+    order = resolve_order("\n請輸入訂單 id 或客戶姓名：")
     if not order:
-        print(f"  ✗ 找不到 id={order_id} 的訂單")
         return
+    order_id = order["id"]
     print("  目前訂單：", end="")
     print_orders([order])
 
