@@ -20,6 +20,23 @@
 python main.py
 ```
 
+### 方式三：匯出所有訂單為 JSON
+
+先確認工作目錄在專案根目錄：
+
+```bash
+cd "d:\user\桌面\練習\資料庫實作練習"
+python export_json/export_orders.py
+```
+
+執行後會在 `export_json/` 資料夾內自動產生帶時間戳記的 JSON 檔，例如：
+
+```
+export_json/orders_20260507_143022.json
+```
+
+---
+
 ### 方式二：網頁介面（FastAPI）
 
 安裝套件（只需執行一次）：
@@ -55,8 +72,10 @@ project/
 ├── logs.py                ← order_logs 資料表的寫入與查詢
 ├── main.py                ← 終端機互動式選單
 ├── api.py                 ← FastAPI 後端，提供 REST API 路由
-└── static/
-    └── index.html         ← 網頁前端，透過 api.py 操作資料庫
+├── static/
+│   └── index.html         ← 網頁前端，透過 api.py 操作資料庫
+└── export_json/
+    └── export_orders.py   ← 將 orders 全部資料匯出為 JSON 檔
 ```
 
 ---
@@ -300,7 +319,7 @@ cp config.example.py config.py
 git status
 
 # 加入要推的檔案（指定檔名，避免誤推敏感資料）
-git add db.py orders.py main.py api.py logs.py static/index.html README.md
+git add db.py orders.py main.py api.py logs.py static/index.html export_json/export_orders.py README.md
 
 # 寫 commit 訊息
 git commit -m "說明這次改了什麼"
